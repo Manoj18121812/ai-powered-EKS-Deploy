@@ -1,0 +1,11 @@
+
+productdb-backup.sql
+.env
+
+# Kubernetes secrets and local credentials
+k8s/*secret*.yaml
+k8s/*secret*.yml
+*.pem
+.env
+.env.*
+k8s/v2_14_1_full.yaml.bak

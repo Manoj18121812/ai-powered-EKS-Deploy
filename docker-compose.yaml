@@ -1,0 +1,41 @@
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: productdb
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      microservices-net:
+        aliases:
+          - mysql
+    restart: unless-stopped
+
+  product-service:
+    build:
+      context: ./Product-service
+    image: product-service:1.0
+    container_name: product-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+     external: true
+     name: 83c275d7bccda7d32ef917def032bb528f7b1ef68a8880c373344e90a046d9f0
+networks:
+  microservices-net:
+    name: microservices-net
+    external: true

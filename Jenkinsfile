@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -41,6 +42,7 @@ pipeline {
                     passwordVariable: 'DOCKER_TOKEN'
                 )]) {
                     sh '''
+                        set +x
                         echo "$DOCKER_TOKEN" | docker login \
                           -u "$DOCKER_USER" --password-stdin
 
@@ -56,11 +58,31 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh '''
-                    kubectl set image deployment/product-service \
-                      product-service=${IMAGE_NAME}:${BUILD_NUMBER}
+                    if ! kubectl set image deployment/product-service \
+                      product-service=${IMAGE_NAME}:${BUILD_NUMBER}; then
+                        echo "Image update failed; deployment unchanged."
+                        exit 1
+                    fi
 
-                    kubectl rollout status deployment/product-service \
-                      --timeout=180s
+                    if kubectl rollout status deployment/product-service \
+                      --timeout=180s; then
+                        echo "Deployment successful."
+                    else
+                        echo "Deployment failed. Starting rollback..."
+
+                        if kubectl rollout undo deployment/product-service; then
+                            if kubectl rollout status deployment/product-service \
+                              --timeout=180s; then
+                                echo "Rollback successful; previous version restored."
+                            else
+                                echo "ERROR: Rollback did not become healthy."
+                            fi
+                        else
+                            echo "ERROR: Rollback command failed."
+                        fi
+
+                        exit 1
+                    fi
                 '''
             }
         }
@@ -71,7 +93,7 @@ pipeline {
             echo 'CI/CD pipeline completed successfully.'
         }
         failure {
-            echo 'Pipeline failed. Check the stage logs before retrying.'
+            echo 'Pipeline failed. Check deployment and rollback logs.'
         }
     }
 }

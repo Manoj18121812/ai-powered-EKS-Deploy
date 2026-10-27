@@ -9,3 +9,4 @@ k8s/*secret*.yml
 .env
 .env.*
 k8s/v2_14_1_full.yaml.bak
+k8s/nginx-kubernetes-ingress/
